@@ -1,0 +1,6 @@
+flask
+pyyaml
+requests
+six
+fit_tool
+garmin-uploader
