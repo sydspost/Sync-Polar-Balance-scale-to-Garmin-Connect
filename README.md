@@ -33,7 +33,7 @@ Polar Flow User account needs to be linked to sync application before applicatio
 
 To start example callback service, run:
 
-python3 authorization.py
+python authorization.py
 and navigate to https://flow.polar.com/oauth2/authorization?response_type=code&client_id=<YOUR_CLIENT_ID> to link user account. After linking has been done you may close authorization.py. Linking saves access token and user id to config.yml
 
 5. You must edit the provided config file and add your Garmin Connect username and password.
@@ -50,6 +50,6 @@ Replace and with your Garmin Connect login credentials.
 
 6. Run sync.py
 
-python3 sync.py
+python sync.py
 
 To run application with a certain frequency, add this command to a scheduler like cron on linux.
