@@ -1,5 +1,5 @@
 # Sync-Polar-Balance-scale-to-Garmin-Connect
-Synchronize weightmeasures from a Polar Balance scale to Garmin Connect
+Synchronize weightmeasures from a Polar Balance scale to Garmin Connect. For the complete story check my (dutch) website https://www.sydspost.nl/index.php/2023/01/10/3109/
 
 Based on/thanks to:
 - Polar Electro for accesslink example, https://github.com/polarofficial/accesslink-example-python
@@ -14,7 +14,7 @@ Prerequisites
 
 Getting Started
 
-1. Create new API client op Polar AccessLink
+1. Create new API client on Polar AccessLink
 Navigate to https://admin.polaraccesslink.com. Log in with your Polar Flow account and create a new client.
 
 Use http://localhost:5000/oauth2_callback as the authorization callback domain.
@@ -36,7 +36,7 @@ To start example callback service, run:
 python authorization.py
 and navigate to https://flow.polar.com/oauth2/authorization?response_type=code&client_id=<YOUR_CLIENT_ID> to link user account. After linking has been done you may close authorization.py. Linking saves access token and user id to config.yml
 
-5. You must edit the provided config file and add your Garmin Connect username and password.
+5. Edit the provided config file and add your Garmin Connect username and password.
 
 ⚠️ WARNING!!! The username and password are stored in clear text, WHICH IS NOT SECURE. If you have concerns about storing your garmin connect username and password in an unsecure file, do not use this option.
 
@@ -46,10 +46,13 @@ Edit the provided text file named .guploadrc (or gupload.ini for Windows users) 
 username=<username>
 password=<password>
 
-Replace and with your Garmin Connect login credentials.
+Replace username and password with your Garmin Connect login credentials.
 
 6. Run sync.py
 
 python sync.py
 
-To run application with a certain frequency, add this command to a scheduler like cron on linux.
+If there is no new weight measurement, the script ends without uploading data to Garmin Connect. This prevents double of multiple registrations.
+
+To run application with a certain frequency, add this command to a scheduler like cron on linux. Example:
+0 3 * * * cd /home/pi/Sync-Polar-Balance-scale-to-Garmin-Connect; python3 /home/pi/Sync-Polar-Balance-scale-to-Garmin-Connect/sync.py
