@@ -1,6 +1,10 @@
 # Sync-Polar-Balance-scale-to-Garmin-Connect
 Synchronize weightmeasures from a Polar Balance scale to Garmin Connect. For the complete story check my (dutch) website https://www.sydspost.nl/index.php/2023/01/10/3109/
 
+Known problems:
+- The Balance scale measurements are not synchronized with you physical info directly. To update your physical info with the measured weight, open after your weight measurement your profile in the Polar Flow app. This causes your physical info to get updated with the last weight measurement from your Polar Balance Scale
+- When running this script, you get a warning: [WARNING] Upload failure: Failed to upload weight.fit from the garmin_uploader. You can ignore that, the script is working fine and upload your weight data to the garmin connect cloud.
+
 Based on/thanks to:
 - Polar Electro for accesslink example, https://github.com/polarofficial/accesslink-example-python
 - Matt Tucker for Fit-tool, https://pypi.org/project/fit-tool/
