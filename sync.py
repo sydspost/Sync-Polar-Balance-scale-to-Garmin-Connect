@@ -7,18 +7,14 @@
 #            Polar Electro for AccessLink https://github.com/polarofficial/accesslink-example-python
 
 import datetime
-import json
 import subprocess
-import sys
-import platform
 import garmin_uploader
 
 from fit_tool.fit_file_builder import FitFileBuilder
 from fit_tool.profile.messages.file_id_message import FileIdMessage
 from fit_tool.profile.messages.weight_scale_message import WeightScaleMessage
 from fit_tool.profile.profile_type import Manufacturer, FileType
-
-from utils import load_config, pretty_print_json
+from utils import load_config
 from accesslink import AccessLink
 
 
@@ -41,56 +37,11 @@ class PolarAccessLink(object):
                                      client_secret=self.config["client_secret"])
 
         self.running = True
-        self.get_user_information()
+        self.get_physical_info()
 
-    def get_user_information(self):
-        print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] Try to login on Polar AccessLink...")
-        user_info = self.accesslink.users.get_information(user_id=self.config["user_id"], 
-                                     access_token=self.config["access_token"])
-        print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] Get last weight measurement")
-        self.weight = user_info["weight"]
-        self.registration_date = user_info["registration-date"]
+    def write_to_fitfile(self):
 
-    def exit(self):
-        self.running = False
-
-# Calculates Time in seconds from epoch "01-01-1970 00:00"
-def time_in_seconds(dt):
-    epoch = datetime.datetime.strptime("00:00 Jan 01 1970", '%H:%M %b %d %Y')
-    delta = dt - epoch
-    return delta.total_seconds() - 3600      # Timezone correction of 3600 sec., adjust according to your Timezone
-
-# The magic happens here
-def main():
-    # Get last weight information for Polar Flow
-    info = PolarAccessLink()
-
-    # Check of there is a previous weight measurement present, if so, open file
-    try:
-        f = open('weight.json', 'r')
-        fileOpened = True
-        print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] Previous weight measurement present")
-    except OSError:
-        fileOpened = False
-        newData = True
-        print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] No Previous weight measurement present")
-
-    # If file opened succesful, read json content
-    if fileOpened:
-        data = json.load(f)
-        # Check if this is a new weight measure
-        if data['timestamp'] == info.registration_date:
-            newData = False
-            print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] No new weight measurement present")
-        else:
-            newData = True
-            print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] New weight measurement present")
-        f.close()
-
-    # If there is a new weight measure, continue, else exit program without doing anything
-    if newData:
-
-	# Define FIT header
+	    # Define FIT header
         file_id_message = FileIdMessage()
         file_id_message.type = FileType.WEIGHT
         file_id_message.manufacturer = Manufacturer.DEVELOPMENT.value
@@ -99,10 +50,10 @@ def main():
         file_id_message.time_created = round(datetime.datetime.now().timestamp() * 1000)
         file_id_message.number = 0
 
-	# Define FIT weightscale message
+	    # Define FIT weightscale message
         weightscale_message = WeightScaleMessage()
-        weightscale_message.weight = info.weight
-        weightscale_message.timestamp = time_in_seconds(datetime.datetime.strptime(info.registration_date[:19], '%Y-%m-%dT%H:%M:%S')) * 1000
+        weightscale_message.weight = self.weight
+        weightscale_message.timestamp = time_in_seconds(datetime.datetime.strptime(self.registration_date[:19], '%Y-%m-%dT%H:%M:%S')) * 1000
 
         # Build FIT file based on header and weightscale message
         builder = FitFileBuilder(auto_define=True, min_string_size=50)
@@ -115,22 +66,45 @@ def main():
         fit_file.to_file('weight.fit')
         print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] Wrote weight.fit file to disk")
 
-        # Build JSON string to save new weight measure
-        weight = {}
-        weight['timestamp'] = info.registration_date
-        weight['weight'] = info.weight
-
-        # Save JSON string to file
-        with open('weight.json', 'w') as f:
-            json.dump(weight, f)
-
-        f.close()
-        print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] Save new weight measurement to file weight.json")
-
         # load FIT file up to https://connect.garmin.com/
         cli = garmin_uploader.__path__[0] + "/cli.py"
         subprocess.call(["python", cli, "weight.fit"])
 
+    def get_physical_info(self):
+        transaction = self.accesslink.physical_info.create_transaction(user_id=self.config["user_id"],
+                                                                       access_token=self.config["access_token"])
+        if not transaction:
+            print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] No new physical information available.")
+            return
+        else:
+            print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] New physical information available.")
+
+        resource_urls = transaction.list_physical_infos()["physical-informations"]
+
+        for url in resource_urls:
+            physical_info = transaction.get_physical_info(url)
+
+            self.weight = physical_info["weight"]
+            self.registration_date = physical_info["created"]
+
+            PolarAccessLink.write_to_fitfile(self)
+            print(datetime.datetime.now().isoformat(timespec='milliseconds') + " [INFO] Processed physical information created on:" + self.registration_date)
+
+        transaction.commit()
+       
+    def exit(self):
+        self.running = False
+
+# Calculates Time in seconds from epoch "01-01-1970 00:00"
+def time_in_seconds(dt):
+    epoch = datetime.datetime.strptime("00:00 Jan 01 1970", '%H:%M %b %d %Y')
+    delta = dt - epoch
+    return delta.total_seconds() - 3600      # Timezone correction of 3600 sec., adjust according to your Timezone
+
+# The magic happens here
+def main():
+    # Proces weight information for Polar Flow
+    PolarAccessLink()
 
 if __name__ == "__main__":
     main()
